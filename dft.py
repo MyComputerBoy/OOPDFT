@@ -1,3 +1,45 @@
+"""_summary_
+Main user classes:
+
+Sample(TimeCode: float, Amplitude: float|"Complex") -> Class to store samples with time codes
+TimeSpan() -> Class to store full time spans of samples
+Complex(Real: float, Imaginary: float) -> My own implementation of complex numbers with extra functions for ease of use
+
+
+Main user functions:
+
+DiscreteFourierTransFormTimeSpan(
+		TimeSpanInput: "TimeSpan", 	#TimeSpan input for transformation
+		StartFrequency: float = 0, 	#Frequency to start analysation
+		EndFrequency: float = 10, 	#Frequency to end analysation
+		Resolution: float = 10, 	#Resolution of frequencies to analyse
+		Inverse: bool=False, 		#False: Forward Fourier; True: Inverse Fourier
+		PercentageThreshholdDigits: float=2	#Digits to show of percentage through transformation
+		) -> "TimeSpan":			#Returns a TimeSpan where frequency is set to TimeCode and Complex output is set to Amplitude
+
+CreateSineWaveTimeSpan(
+	StartTime: float, 				#Time to start sinewave
+	EndTime: float, 				#Time to end sinewave
+	Resolution: float, 				#Resolution of TimeCode
+	Freq: float, 					#Frequency of sinewave
+	Amp: float = 1					#Amplitude of sinewave
+	) -> list["Sample"]:			#Returns a list["Sample"] for easier input for TimeSpan.AppendMultipleSamples()
+
+CreateSquareWaveTimeSpan(
+	StartTime: float, 				#Time to start squarewave
+	EndTime: float, 				#Time to end squarewave
+	Resolution: float, 				#Resolution of TimeCode
+	Freq: float, 					#Frequency of squarewave
+	Amp: float = 1					#Amplitude of squarewave
+	) -> list["Sample"]:			#Returns a list["Sample"] for easier input for TimeSpan.AppendMultipleSamples()
+
+__main__(
+	StartTime: float = 0, 			#Start frequency for forward and inverse Fourier
+	EndTime: float = 50, 			#End frequency for forward and inverse Fourier
+	Resolution: float = 10			#Resolution of frequencies for forward and inverse Fourier
+	) -> list["TimeSpan"]:			#Returns Input TimeSpan, Forward Fourier, Inverse Fourier
+"""
+
 import math
 from typing import Any
 
@@ -126,12 +168,6 @@ class Complex():
 	def __str__(self) -> str:
 		return "%s + %si |%s|" % (self.Real, self.Imaginary, self.GetMagnitude())
 
-def Faculty(x: int) -> float:
-	q = 1
-	for i in range(2, x):
-		q *= i
-	return q
-
 def DiscreteFourierTransFormTimeSpan(
 		TimeSpanInput: "TimeSpan", 
 		StartFrequency: float = 0, 
@@ -205,13 +241,13 @@ def CreateSineWaveTimeSpan(StartTime: float, EndTime: float, Resolution: float, 
 		TimeSpanHandler.append(TemporarySample)
 	return TimeSpanHandler
 
-def CreateSquareWaveTimeSpan(StartTime: float, EndTime: float, Resolution: float, Freq: float) -> list["Sample"]:
+def CreateSquareWaveTimeSpan(StartTime: float, EndTime: float, Resolution: float, Freq: float, Amp: float = 1) -> list["Sample"]:
 	TimeSpanHandler = []
 	for ScaledTimeCode in range(math.floor((EndTime-StartTime)*Resolution)):
 		TimeCode = (ScaledTimeCode-StartTime)/Resolution
 
 		if (TimeCode*Freq) % 1 < .5:
-			Amplitude = Complex(1, 1)
+			Amplitude = Complex(Amp, Amp)
 		else:
 			Amplitude = Complex(0, 0)
 		
