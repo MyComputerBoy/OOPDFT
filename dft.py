@@ -136,17 +136,25 @@ class Complex():
 	__repr__(self) -> Basic representation of self
 	__str__(self) -> Basic string convertion of self
 	"""
-	def __init__(self, Real: float = 0, Imaginary: float = 0):
+	def __init__(
+			self, 
+			Real: float = 0, 
+			Imaginary: float = 0
+			) -> None:
 		self.Real = Real
 		self.Imaginary = Imaginary
 	
 	def __add__(self, other: "Complex") -> "Complex":
-		return Complex(	self.Real + other.Real, 
-				 		self.Imaginary + other.Imaginary)
+		return Complex(	
+			self.Real + other.Real, 
+			self.Imaginary + other.Imaginary
+		)
 
 	def __mul__(self, other: "Complex") -> "Complex":
-		return Complex(	self.Real * other.Real - self.Imaginary * other.Imaginary,
-						self.Real * other.Imaginary + self.Imaginary * other.Real)
+		return Complex(	
+			self.Real * other.Real - self.Imaginary * other.Imaginary,
+			self.Real * other.Imaginary + self.Imaginary * other.Real
+		)
 	
 	def PolarToComplex(self, Angle: float, Amplitude: float) -> "Complex":
 		if type(Amplitude) is Complex:
@@ -161,6 +169,10 @@ class Complex():
 			print(self.Real, self.Imaginary)
 			raise TypeError
 		return math.sqrt((self.Real ** 2) + (self.Imaginary ** 2))
+
+	def Set(self, Real: float, Imaginary: float) -> None:
+		self.Real = Real
+		self.Imaginary = Imaginary
 
 	def __repr__(self) -> str:
 		return "Complex(%s, %s)" % (self.Real, self.Imaginary)
@@ -197,65 +209,105 @@ def DiscreteFourierTransFormTimeSpan(
 	ComplexHandler = Complex()
 
 	if Inverse:	#Inverse Fourier
-		sign = 1
-		Multiplier = 1/math.sqrt(Tau)
+		ExponentSign = 1
+		OutputMultiplier = 1/math.sqrt(Tau)
 	else:		#Forward Fourier
-		sign = -1
-		Multiplier = 1
+		ExponentSign = -1
+		OutputMultiplier = 1
 	
-	ComplexMultiplier = Complex(Multiplier, Multiplier)
+	ComplexOutputMultiplier = Complex(
+		OutputMultiplier, OutputMultiplier
+	)
 
 	TotalIterations = (EndFrequency-StartFrequency)*Resolution
 
 	#Main Fourier loop through every frequency
 	for ScaledFrequency in range(math.floor((TotalIterations))):
 		Frequency = (ScaledFrequency-StartFrequency)/Resolution
-		WorkingPoint = Complex()
+		IntegralPoint = Complex()
 
-		# ScaledPercentageThreshhold = math.floor(TotalIterations/(10**PercentageThreshholdDigits))
-		# if ScaledFrequency %  ScaledPercentageThreshhold == 0:
-		# 	PercentageThrough = 100*Frequency/(EndFrequency-StartFrequency)
-		# 	print("%s%s" % (str(PercentageThrough), "%"))
+		ShouldPrintPercentage = math.floor(
+			TotalIterations/(10**PercentageThreshholdDigits)
+		) % ScaledFrequency == 0
+
+		if ShouldPrintPercentage:
+			PercentageThrough = (
+				100*Frequency/(EndFrequency-StartFrequency)
+			)
+			print("%s%s" % (str(PercentageThrough), "%"))
 
 		#Integral part of Fourier
 		for Time, Amp in TimeSpanInput.GetZippedSamples():
-			Angle = sign * Tau * Time * Frequency
-			WorkingPoint += ComplexHandler.PolarToComplex(Angle, Amp)
+			Angle = ExponentSign * Tau * Time * Frequency
+			IntegralPoint += ComplexHandler.PolarToComplex(Angle, Amp)
 		
-		OutputAmplitude = WorkingPoint * ComplexMultiplier
+		OutputAmplitude = IntegralPoint * ComplexOutputMultiplier
+
 		if Inverse:
-			WorkingSample = Sample(Frequency, OutputAmplitude.GetMagnitude())
+			FinalOutputAmplitude = OutputAmplitude.GetMagnitude()
 		else:
-			WorkingSample = Sample(Frequency, OutputAmplitude)
-		TimeSpanHandler.AppendSample(WorkingSample)
+			FinalOutputAmplitude = OutputAmplitude
+		
+		TimeSpanHandler.AppendSample(
+			Sample(Frequency, FinalOutputAmplitude)
+		)
 	
 	return TimeSpanHandler
 
-def CreateSineWaveTimeSpan(StartTime: float, EndTime: float, Resolution: float, Freq: float, Amp: float = 1) -> list["Sample"]:
-	TimeSpanHandler = []
-	for ScaledTimeCode in range(math.floor((EndTime-StartTime)*Resolution)):
+def CreateSineWave(
+		StartTime: float, 
+		EndTime: float, 
+		Resolution: float, 
+		Freq: float, 
+		Amp: float = 1
+		) -> "TimeSpan":
+	
+	TimeSpanHandler = TimeSpan()
+
+	TotalSampleAmount = math.floor((EndTime-StartTime)*Resolution)
+
+	for ScaledTimeCode in range(TotalSampleAmount):
 		TimeCode = (ScaledTimeCode-StartTime)/Resolution
 
-		Amplitude = math.sin(TimeCode * Tau * Freq)
-		TemporarySample = Sample(TimeCode, Amplitude * Amp)
-		TimeSpanHandler.append(TemporarySample)
+		Amplitude = math.sin(Tau * TimeCode * Freq)
+		TimeSpanHandler.AppendSample(
+			Sample(TimeCode, Amplitude * Amp)
+		)
+
 	return TimeSpanHandler
 
-def CreateSquareWaveTimeSpan(StartTime: float, EndTime: float, Resolution: float, Freq: float, Amp: float = 1) -> list["Sample"]:
-	TimeSpanHandler = []
-	for ScaledTimeCode in range(math.floor((EndTime-StartTime)*Resolution)):
+def CreateSquareWaveTimeSpan(
+		StartTime: float, 
+		EndTime: float, 
+		Resolution: float, 
+		Freq: float, 
+		Amp: float = 1
+		) -> list["Sample"]:
+	
+	TimeSpanHandler = TimeSpan()
+	TotalSampleAmount = math.floor((EndTime-StartTime)*Resolution)
+	ComplexHandler: Complex = Complex()
+
+	for ScaledTimeCode in range(TotalSampleAmount):
 		TimeCode = (ScaledTimeCode-StartTime)/Resolution
 
 		if (TimeCode*Freq) % 1 < .5:
-			Amplitude = Complex(Amp, Amp)
+			ComplexHandler.Set(Amp, Amp)
 		else:
-			Amplitude = Complex(0, 0)
+			ComplexHandler.Set(0, 0)
 		
-		TemporarySample = Sample(TimeCode, Amplitude)
-		TimeSpanHandler.append(TemporarySample)
+		TimeSpanHandler.AppendSample(
+			Sample(TimeCode, ComplexHandler)
+		)
+	
 	return TimeSpanHandler
 
-def __main__(StartTime: float = 0, EndTime: float = 50, Resolution: float = 10) -> list["TimeSpan"]:
+def __main__(
+		StartTime: float = 0, 
+		EndTime: float = 50, 
+		Resolution: float = 10
+		) -> list["TimeSpan"]:
+	
 	"""_summary_
 
 	Args:
@@ -266,22 +318,26 @@ def __main__(StartTime: float = 0, EndTime: float = 50, Resolution: float = 10) 
 	Returns:
 		list["TimeSpan"]: Returns Input, Forward Fourier, Inverse Fourier
 	"""
+	
 	print("Creating input.")
 	WorkingSineTimeSpan = TimeSpan()
 	WorkingSineList = CreateSquareWaveTimeSpan(0, 50, 50, 1)
 	WorkingSineTimeSpan.AppendMultipleSamples(WorkingSineList)
-	
-	# return WorkingSineTimeSpan
-
 	print("Squarewave created.")
 
-	Fourier = DiscreteFourierTransFormTimeSpan(WorkingSineTimeSpan, StartTime, EndTime, Resolution)
+	Fourier = DiscreteFourierTransFormTimeSpan(
+		WorkingSineTimeSpan, 
+		StartTime, 
+		EndTime, 
+		Resolution)
 	print("Fourier Done.")
 
-	# return WorkingSineTimeSpan, Fourier
-
-	InverseFourier = DiscreteFourierTransFormTimeSpan(Fourier, StartTime, EndTime, Resolution, True)
-
+	InverseFourier = DiscreteFourierTransFormTimeSpan(
+		Fourier, 
+		StartTime, 
+		EndTime, 
+		Resolution, 
+		True)
 	print("Inverse Fourier Done.")
 
 	return WorkingSineTimeSpan, Fourier, InverseFourier
